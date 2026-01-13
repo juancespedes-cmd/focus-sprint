@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Play, Pause, Check, X } from 'lucide-react'
@@ -15,7 +15,7 @@ interface Sprint {
   task_id: string
 }
 
-export default function SprintPage() {
+function SprintContent() {
   const [sprint, setSprint] = useState<Sprint | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeRemaining, setTimeRemaining] = useState(0)
@@ -64,7 +64,7 @@ export default function SprintPage() {
       router.push('/tasks')
     } else {
       setSprint(data)
-      setTimeRemaining(data.duration * 60) // Convert minutes to seconds
+      setTimeRemaining(data.duration * 60)
       setLoading(false)
     }
   }
@@ -142,7 +142,6 @@ export default function SprintPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex flex-col">
-      {/* Header */}
       <div className="p-4 flex justify-between items-center">
         <button
           onClick={() => router.push('/tasks')}
@@ -155,7 +154,6 @@ export default function SprintPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-white">
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-8 max-w-2xl">
           {sprint.title}
@@ -165,12 +163,10 @@ export default function SprintPage() {
           {sprint.description}
         </p>
 
-        {/* Timer Display */}
         <div className="text-8xl md:text-9xl font-bold mb-12 font-mono">
           {formatTime(timeRemaining)}
         </div>
 
-        {/* Controls */}
         <div className="flex gap-4 mb-12">
           <button
             onClick={() => setIsRunning(!isRunning)}
@@ -198,7 +194,6 @@ export default function SprintPage() {
           </button>
         </div>
 
-        {/* Action Plan */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 max-w-2xl w-full">
           <h2 className="text-xl font-semibold mb-4">5-Step Action Plan:</h2>
           <ol className="space-y-3">
@@ -214,5 +209,17 @@ export default function SprintPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SprintPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    }>
+      <SprintContent />
+    </Suspense>
   )
 }
