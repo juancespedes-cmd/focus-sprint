@@ -62,26 +62,29 @@ export default function Dashboard() {
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-blue-800">
-              🎉 Your account is set up! This is your dashboard.
-            </p>
-            <p className="text-blue-600 text-sm mt-2">
-              Next: We'll add task management and AI features.
+              🎉 Your account is set up! Start managing your tasks below.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-purple-50 p-6 rounded-lg">
+            {/* Tasks Card - Clickable */}
+            <div
+              onClick={() => router.push('/tasks')}
+              className="bg-purple-50 p-6 rounded-lg cursor-pointer hover:bg-purple-100 transition"
+            >
               <div className="text-3xl mb-2">📝</div>
               <h3 className="font-semibold text-gray-900">Tasks</h3>
-              <p className="text-gray-600 text-sm">Coming soon...</p>
+              <p className="text-purple-600 text-sm font-medium">Manage your tasks →</p>
             </div>
 
+            {/* Sprints Card */}
             <div className="bg-blue-50 p-6 rounded-lg">
               <div className="text-3xl mb-2">⏱️</div>
               <h3 className="font-semibold text-gray-900">Sprints</h3>
               <p className="text-gray-600 text-sm">Coming soon...</p>
             </div>
 
+            {/* Progress Card */}
             <div className="bg-green-50 p-6 rounded-lg">
               <div className="text-3xl mb-2">📊</div>
               <h3 className="font-semibold text-gray-900">Progress</h3>
