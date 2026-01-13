@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Plus, CheckCircle, Circle, Trash2, ArrowLeft } from 'lucide-react'
+import { Plus, CheckCircle, Circle, Trash2, ArrowLeft, Zap, Loader2 } from 'lucide-react'
 
 interface Task {
   id: string
@@ -13,12 +13,24 @@ interface Task {
   created_at: string
 }
 
+interface Sprint {
+  id: string
+  title: string
+  description: string
+  duration: number
+  action_plan: string[]
+  status: string
+}
+
 export default function TasksPage() {
   const [user, setUser] = useState<any>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newTask, setNewTask] = useState({ title: '', description: '' })
+  const [breakdownLoading, setBreakdownLoading] = useState<string | null>(null)
+  const [selectedTask, setSelectedTask] = useState<string | null>(null)
+  const [sprints, setSprints] = useState<Sprint[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -51,6 +63,20 @@ export default function TasksPage() {
     setLoading(false)
   }
 
+  async function loadSprints(taskId: string) {
+    const { data, error } = await supabase
+      .from('sprints')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error loading sprints:', error)
+    } else {
+      setSprints(data || [])
+    }
+  }
+
   async function addTask() {
     if (!newTask.title.trim()) {
       alert('Please enter a task title')
@@ -78,6 +104,39 @@ export default function TasksPage() {
     }
   }
 
+  async function breakdownTask(task: Task) {
+    setBreakdownLoading(task.id)
+    
+    try {
+      const response = await fetch('/api/breakdown', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          taskTitle: task.title,
+          taskDescription: task.description,
+          userId: user.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate breakdown')
+      }
+
+      alert(`✨ Created ${data.sprints.length} sprints for this task!`)
+      setSelectedTask(task.id)
+      loadSprints(task.id)
+      
+    } catch (error: any) {
+      console.error('Breakdown error:', error)
+      alert('Error: ' + error.message)
+    } finally {
+      setBreakdownLoading(null)
+    }
+  }
+
   async function toggleTaskStatus(taskId: string, currentStatus: string) {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
     
@@ -94,7 +153,7 @@ export default function TasksPage() {
   }
 
   async function deleteTask(taskId: string) {
-    if (!confirm('Are you sure you want to delete this task?')) {
+    if (!confirm('Are you sure? This will also delete all sprints for this task.')) {
       return
     }
 
@@ -106,6 +165,10 @@ export default function TasksPage() {
     if (error) {
       console.error('Error deleting task:', error)
     } else {
+      if (selectedTask === taskId) {
+        setSelectedTask(null)
+        setSprints([])
+      }
       loadTasks(user.id)
     }
   }
@@ -228,56 +291,128 @@ export default function TasksPage() {
         ) : (
           <div className="space-y-3">
             {tasks.map((task) => (
-              <div
-                key={task.id}
-                className={`bg-white rounded-lg shadow p-6 transition hover:shadow-md ${
-                  task.status === 'completed' ? 'opacity-60' : ''
-                }`}
-              >
-                <div className="flex items-start gap-4">
-                  <button
-                    onClick={() => toggleTaskStatus(task.id, task.status)}
-                    className="mt-1 text-gray-400 hover:text-purple-600 transition"
-                  >
-                    {task.status === 'completed' ? (
-                      <CheckCircle size={24} className="text-green-600" />
-                    ) : (
-                      <Circle size={24} />
-                    )}
-                  </button>
+              <div key={task.id}>
+                <div
+                  className={`bg-white rounded-lg shadow p-6 transition hover:shadow-md ${
+                    task.status === 'completed' ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <button
+                      onClick={() => toggleTaskStatus(task.id, task.status)}
+                      className="mt-1 text-gray-400 hover:text-purple-600 transition"
+                    >
+                      {task.status === 'completed' ? (
+                        <CheckCircle size={24} className="text-green-600" />
+                      ) : (
+                        <Circle size={24} />
+                      )}
+                    </button>
 
-                  <div className="flex-1">
-                    <h3 className={`text-lg font-semibold text-gray-900 mb-1 ${
-                      task.status === 'completed' ? 'line-through' : ''
-                    }`}>
-                      {task.title}
-                    </h3>
-                    {task.description && (
-                      <p className="text-gray-600 text-sm mb-2">
-                        {task.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>
-                        Created {new Date(task.created_at).toLocaleDateString()}
-                      </span>
-                      <span className={`px-2 py-1 rounded ${
-                        task.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800'
+                    <div className="flex-1">
+                      <h3 className={`text-lg font-semibold text-gray-900 mb-1 ${
+                        task.status === 'completed' ? 'line-through' : ''
                       }`}>
-                        {task.status}
-                      </span>
-                    </div>
-                  </div>
+                        {task.title}
+                      </h3>
+                      {task.description && (
+                        <p className="text-gray-600 text-sm mb-2">
+                          {task.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                        <span>
+                          Created {new Date(task.created_at).toLocaleDateString()}
+                        </span>
+                        <span className={`px-2 py-1 rounded ${
+                          task.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {task.status}
+                        </span>
+                      </div>
 
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="text-gray-400 hover:text-red-600 transition"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                      {/* AI Breakdown Button */}
+                      {task.status !== 'completed' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => breakdownTask(task)}
+                            disabled={breakdownLoading === task.id}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 text-sm font-medium"
+                          >
+                            {breakdownLoading === task.id ? (
+                              <>
+                                <Loader2 size={16} className="animate-spin" />
+                                AI Breaking Down...
+                              </>
+                            ) : (
+                              <>
+                                <Zap size={16} />
+                                AI Breakdown
+                              </>
+                            )}
+                          </button>
+
+                          {selectedTask !== task.id && (
+                            <button
+                              onClick={() => {
+                                setSelectedTask(task.id)
+                                loadSprints(task.id)
+                              }}
+                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+                            >
+                              View Sprints
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="text-gray-400 hover:text-red-600 transition"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Sprints for this task */}
+                {selectedTask === task.id && sprints.length > 0 && (
+                  <div className="ml-12 mt-3 space-y-2">
+                    {sprints.map((sprint, index) => (
+                      <div key={sprint.id} className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-600">
+                        <div className="flex items-start gap-3">
+                          <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            {index + 1}
+                          </span>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 mb-1">
+                              {sprint.title}
+                            </h4>
+                            <p className="text-gray-600 text-sm mb-2">
+                              {sprint.description}
+                            </p>
+                            <div className="text-xs text-blue-600 font-medium mb-2">
+                              ⏱️ {sprint.duration} minutes
+                            </div>
+                            <details className="text-sm">
+                              <summary className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium">
+                                5-Step Action Plan
+                              </summary>
+                              <ol className="mt-2 space-y-1 ml-5 list-decimal text-gray-700">
+                                {sprint.action_plan.map((step, i) => (
+                                  <li key={i}>{step}</li>
+                                ))}
+                              </ol>
+                            </details>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
