@@ -44,12 +44,20 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">
             ⚡ Momentum
           </h1>
-          <button
-            onClick={signOut}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-          >
-            Sign Out
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push('/settings')}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            >
+              ⚙️ Settings
+            </button>
+            <button
+              onClick={signOut}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
