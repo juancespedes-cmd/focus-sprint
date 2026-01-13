@@ -397,6 +397,12 @@ export default function TasksPage() {
                             <div className="text-xs text-blue-600 font-medium mb-2">
                               ⏱️ {sprint.duration} minutes
                             </div>
+                            <button
+                                onClick={() => router.push(`/sprint?id=${sprint.id}`)}
+                                className="mb-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                                >
+                                 ▶️ Start Sprint
+                            </button>
                             <details className="text-sm">
                               <summary className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium">
                                 5-Step Action Plan
